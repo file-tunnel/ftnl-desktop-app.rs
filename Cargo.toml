@@ -25,7 +25,7 @@ native-ui = ["dep:eframe", "dep:tokio", "ftnl-ui-components/egui"]
 ftnl-client = { git = "https://github.com/file-tunnel/ftnl-clients.git", rev = "a93812ff94e604b2ccd7736c2e1d8ae8bbea2978" }
 ftnl-interfaces = { git = "https://github.com/file-tunnel/ftnl-interfaces.git", rev = "22cd738ac574e41b6a04188181387722fe709716" }
 ftnl-ui-components = { git = "https://github.com/file-tunnel/ftnl-ui-components.git", rev = "362f7014a61f64e99abc6dc845fcc5697e236135", optional = true }
-next-loggers = { package = "oresoftware-next-loggers", git = "https://github.com/ores-otel/ores.otel.log.git", rev = "eb656efe232fa5128d0e5b77b81224aca835e543" }
+next-loggers = { package = "oresoftware-next-loggers", git = "https://github.com/ores-otel/ores.otel.log.git", rev = "64a4ee0ed839a8de7e9ba2588899a24e25b05a65" }
 serde_json = "1"
 tempfile = "3"
 thiserror = "2"
