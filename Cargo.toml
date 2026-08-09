@@ -1,0 +1,44 @@
+[package]
+name = "ftnl-desktop-app"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.82"
+description = "Native Rust desktop companion for secure File Tunnel transfers"
+license = "MIT"
+repository = "https://github.com/file-tunnel/ftnl-desktop-app.rs"
+publish = false
+
+[lib]
+name = "ftnl_desktop"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ftnl-desktop"
+path = "src/main.rs"
+required-features = ["native-ui"]
+
+[features]
+default = ["native-ui"]
+native-ui = ["dep:eframe", "dep:tokio", "ftnl-ui-components/egui"]
+
+[dependencies]
+ftnl-client = { git = "https://github.com/file-tunnel/ftnl-clients.git", rev = "a93812ff94e604b2ccd7736c2e1d8ae8bbea2978" }
+ftnl-interfaces = { git = "https://github.com/file-tunnel/ftnl-interfaces.git", rev = "22cd738ac574e41b6a04188181387722fe709716" }
+ftnl-ui-components = { git = "https://github.com/file-tunnel/ftnl-ui-components.git", rev = "362f7014a61f64e99abc6dc845fcc5697e236135", optional = true }
+next-loggers = { package = "oresoftware-next-loggers", git = "https://github.com/ores-otel/ores.otel.log.git", rev = "eb656efe232fa5128d0e5b77b81224aca835e543" }
+serde_json = "1"
+tempfile = "3"
+thiserror = "2"
+uuid = { version = "1", features = ["serde"] }
+zeroize = "1"
+
+eframe = { version = "0.31", optional = true, default-features = false, features = [
+  "default_fonts",
+  "glow",
+  "wayland",
+  "x11",
+] }
+tokio = { version = "1", optional = true, features = ["rt", "time"] }
+
+[lints.rust]
+unsafe_code = "forbid"

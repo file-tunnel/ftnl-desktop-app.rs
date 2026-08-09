@@ -1,0 +1,38 @@
+[package]
+org = "file-tunnel"
+name = "ftnl-desktop-app.rs"
+version = "0.1.0"
+description = "Native Rust desktop receiver for File Tunnel"
+license = "MIT"
+keywords = ["desktop", "rust", "egui", "file-transfer", "opentelemetry"]
+
+[package.repository]
+vcs = "git"
+url = "https://github.com/file-tunnel/ftnl-desktop-app.rs"
+
+[dependencies]
+"file-tunnel/ftnl-interfaces" = "^0.1.0"
+"file-tunnel/ftnl-clients" = "^0.1.0"
+"file-tunnel/ftnl-ui-components" = "^0.1.0"
+"oresoftware/next-loggers" = "^0.1.0"
+
+[build]
+command = "cargo build --release --locked --all-features"
+
+[install]
+adapter = "none"
+dir = ".vendor/.zed"
+
+[publish]
+include_readme = true
+tag_format = "v{version}"
+smoke_test = "test -f \"$ZED_PKG_TEST_TARGET/Cargo.toml\""
+exclude = [".env", ".env.*", "env/dec/**", ".direnv/**", ".cache/**", "target/**", "**/*.log", ".DS_Store"]
+
+[targets.rust]
+dir = "."
+name = "ftnl-desktop-app-rust"
+adapter = "rust"
+
+[scripts]
+test = "nix develop --command agent-check"
