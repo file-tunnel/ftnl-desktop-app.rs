@@ -15,5 +15,9 @@ These instructions apply to this repository and every directory beneath it.
 - Preserve declared-size checks, safe default filenames, same-directory staging,
   flush-before-persist, atomic output, and no-clobber-by-default behavior.
 - Do not claim byte-range or crash resume until the shared protocol defines it.
-- Run headless and all-feature format, locked Clippy/tests, dependency validation,
-  actionlint, and the Nix agent check before publishing.
+- Run `nix develop --command agent-check` before publishing; it covers headless
+  and all-feature format, locked Clippy/tests, dependency validation, actionlint,
+  and the repository's Nix checks.
+- Integrate shared branch history with merge commits when necessary.
+
+avoid git rebase in favor of git merge.
