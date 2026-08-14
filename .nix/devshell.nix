@@ -13,6 +13,7 @@ pkgs.mkShell {
     pkgs.rustfmt
     pkgs.shellcheck
     pkgs.shfmt
+    pkgs.tlaplus
   ]
   ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
     pkgs.libGL

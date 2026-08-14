@@ -29,6 +29,7 @@
             pkgs.rustfmt
             pkgs.shellcheck
             pkgs.shfmt
+            pkgs.tlaplus
           ];
           text = builtins.readFile ./.nix/agent-check.sh;
         };

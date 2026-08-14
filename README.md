@@ -45,6 +45,22 @@ Public release artifacts still require platform signing/notarization. Current
 GitHub Actions prove source portability and compile the native shell; they do
 not publish unsigned binaries as a release.
 
+## Formally verified lifecycle
+
+Every user command and worker response crosses the pure reducer in
+`src/lifecycle.rs`. The reducer owns the control state and the single active
+operation identifier, rejects illegal commands, and treats stale or duplicate
+responses as no-ops. UI stage, busy state, retry behavior, and session
+authority are derived from that one state instead of being mutated
+independently.
+
+`formal/DesktopLifecycle.tla` exhaustively checks the bounded control
+abstraction, including operation-ID wraparound. The product tests exercise the
+same transition API from `ftnl-ui-components` and verify response correlation.
+Formal artifacts contain no pairing URI, capability, filename, file ID, path,
+bytes, or raw transport error. See `formal/README.md` for the exact proof
+boundary.
+
 ## Build and test
 
 ```bash

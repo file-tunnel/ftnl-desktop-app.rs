@@ -773,7 +773,7 @@ dependencies = [
 [[package]]
 name = "ftnl-ui-components"
 version = "0.1.0"
-source = "git+https://github.com/file-tunnel/ftnl-ui-components.git?rev=362f7014a61f64e99abc6dc845fcc5697e236135#362f7014a61f64e99abc6dc845fcc5697e236135"
+source = "git+https://github.com/file-tunnel/ftnl-ui-components.git?rev=3f71c269ddf6356fdf176ae5c79726ec2dcad3f1#3f71c269ddf6356fdf176ae5c79726ec2dcad3f1"
 dependencies = [
  "egui",
  "qrcode",
