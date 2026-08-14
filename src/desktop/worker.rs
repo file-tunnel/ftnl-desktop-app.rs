@@ -7,10 +7,16 @@ use next_loggers::Logger;
 use uuid::Uuid;
 use zeroize::Zeroizing;
 
+use crate::lifecycle::OperationId;
 use crate::observability;
 use crate::transfer::{save_download, ReceiveSession};
 
-pub enum Request {
+pub struct Request {
+    pub operation: OperationId,
+    pub kind: RequestKind,
+}
+
+pub enum RequestKind {
     Create {
         base_url: String,
         application_id: String,
@@ -35,7 +41,12 @@ pub enum Request {
     },
 }
 
-pub enum Response {
+pub struct Response {
+    pub operation: OperationId,
+    pub kind: ResponseKind,
+}
+
+pub enum ResponseKind {
     Created(ReceiveSession),
     Snapshot(Vec<FileDescriptor>),
     Downloaded(PathBuf),
@@ -79,7 +90,9 @@ fn run(requests: Receiver<Request>, responses: Sender<Response>) {
         .build()
         .expect("desktop Tokio runtime should start");
     while let Ok(request) = requests.recv() {
-        let response = runtime.block_on(handle(request, &logger));
+        let operation = request.operation;
+        let kind = runtime.block_on(handle(request.kind, &logger));
+        let response = Response { operation, kind };
         if responses.send(response).is_err() {
             break;
         }
@@ -88,15 +101,15 @@ fn run(requests: Receiver<Request>, responses: Sender<Response>) {
     let _ = logger.close();
 }
 
-async fn handle(request: Request, logger: &Logger) -> Response {
+async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
     match request {
-        Request::Create {
+        RequestKind::Create {
             base_url,
             application_id,
         } => {
             observability::event(logger, "tunnel.create.started");
             let Ok(client) = client(&base_url) else {
-                return Response::Failed("The service address is not allowed.");
+                return ResponseKind::Failed("The service address is not allowed.");
             };
             let request = CreateTunnelRequest {
                 application_id,
@@ -108,18 +121,18 @@ async fn handle(request: Request, logger: &Logger) -> Response {
             match client.create_tunnel(&request).await {
                 Ok(tunnel) => {
                     observability::event(logger, "tunnel.create.completed");
-                    Response::Created(ReceiveSession::from_tunnel(tunnel))
+                    ResponseKind::Created(ReceiveSession::from_tunnel(tunnel))
                 }
                 Err(error) => failed(logger, "tunnel.create.failed", &error),
             }
         }
-        Request::Refresh {
+        RequestKind::Refresh {
             base_url,
             tunnel_id,
             capability,
         } => {
             let Ok(client) = client(&base_url) else {
-                return Response::Failed("The service address is not allowed.");
+                return ResponseKind::Failed("The service address is not allowed.");
             };
             match client.snapshot(tunnel_id, capability.as_str()).await {
                 Ok(snapshot) => {
@@ -128,12 +141,12 @@ async fn handle(request: Request, logger: &Logger) -> Response {
                         "tunnel.snapshot.completed",
                         snapshot.files.len(),
                     );
-                    Response::Snapshot(snapshot.files)
+                    ResponseKind::Snapshot(snapshot.files)
                 }
                 Err(error) => failed(logger, "tunnel.snapshot.failed", &error),
             }
         }
-        Request::Download {
+        RequestKind::Download {
             base_url,
             tunnel_id,
             capability,
@@ -143,7 +156,7 @@ async fn handle(request: Request, logger: &Logger) -> Response {
         } => {
             observability::event(logger, "file.download.started");
             let Ok(client) = client(&base_url) else {
-                return Response::Failed("The service address is not allowed.");
+                return ResponseKind::Failed("The service address is not allowed.");
             };
             let bytes = match client
                 .download(tunnel_id, file.file_id, capability.as_str())
@@ -155,28 +168,28 @@ async fn handle(request: Request, logger: &Logger) -> Response {
             match save_download(&file, &bytes, destination.as_deref(), force) {
                 Ok(path) => {
                     observability::event(logger, "file.download.completed");
-                    Response::Downloaded(path)
+                    ResponseKind::Downloaded(path)
                 }
                 Err(_) => {
                     observability::event(logger, "file.persist.failed");
-                    Response::Failed(
+                    ResponseKind::Failed(
                         "The downloaded file could not be safely written at that location.",
                     )
                 }
             }
         }
-        Request::Cancel {
+        RequestKind::Cancel {
             base_url,
             tunnel_id,
             capability,
         } => {
             let Ok(client) = client(&base_url) else {
-                return Response::Failed("The service address is not allowed.");
+                return ResponseKind::Failed("The service address is not allowed.");
             };
             match client.cancel(tunnel_id, capability.as_str()).await {
                 Ok(()) => {
                     observability::event(logger, "tunnel.cancel.completed");
-                    Response::Cancelled
+                    ResponseKind::Cancelled
                 }
                 Err(error) => failed(logger, "tunnel.cancel.failed", &error),
             }
@@ -188,21 +201,23 @@ fn client(base_url: &str) -> Result<FileTunnelClient, ClientError> {
     FileTunnelClient::with_timeout(base_url, Duration::from_secs(30))
 }
 
-fn failed(logger: &Logger, event: &'static str, error: &ClientError) -> Response {
+fn failed(logger: &Logger, event: &'static str, error: &ClientError) -> ResponseKind {
     observability::event(logger, event);
     match error {
         ClientError::Api { status, .. } if matches!(status.as_u16(), 404 | 410) => {
-            Response::Failed("The tunnel expired or is no longer available.")
+            ResponseKind::Failed("The tunnel expired or is no longer available.")
         }
         ClientError::Api { status, .. } if status.as_u16() == 401 || status.as_u16() == 403 => {
-            Response::Failed("This session is no longer authorized.")
+            ResponseKind::Failed("This session is no longer authorized.")
         }
         ClientError::InvalidBaseUrl(_)
         | ClientError::UnsupportedScheme(_)
         | ClientError::InsecureTransport(_)
-        | ClientError::InvalidTimeout => Response::Failed("The service address is not allowed."),
+        | ClientError::InvalidTimeout => {
+            ResponseKind::Failed("The service address is not allowed.")
+        }
         ClientError::Transport(_) | ClientError::Api { .. } => {
-            Response::Failed("The network request failed. Check the connection and try again.")
+            ResponseKind::Failed("The network request failed. Check the connection and try again.")
         }
     }
 }
