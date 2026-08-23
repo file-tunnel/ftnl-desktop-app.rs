@@ -1,6 +1,11 @@
 { pkgs, agentCheck }:
 pkgs.mkShell {
   packages = [
+    # encrypted env files — env/enc/*.env.enc, see env/README.md
+    pkgs.sops
+    pkgs.age
+    pkgs.python3
+    pkgs.just
     agentCheck
     pkgs.actionlint
     pkgs.cargo
