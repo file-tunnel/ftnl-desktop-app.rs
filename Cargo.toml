@@ -29,6 +29,7 @@ next-loggers = { package = "oresoftware-next-loggers", git = "https://github.com
 serde_json = "1"
 tempfile = "3"
 thiserror = "2"
+url = "2"
 uuid = { version = "1", features = ["serde"] }
 zeroize = "1"
 

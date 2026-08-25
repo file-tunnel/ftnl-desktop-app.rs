@@ -9,7 +9,10 @@ use zeroize::Zeroizing;
 
 use crate::lifecycle::OperationId;
 use crate::observability;
-use crate::transfer::{save_download, ReceiveSession};
+use crate::transfer::{
+    save_download, validate_file_descriptor, validate_snapshot, ReceiveSession,
+    MAX_FILES_PER_TUNNEL, MAX_FILE_BYTES,
+};
 
 pub struct Request {
     pub operation: OperationId,
@@ -114,15 +117,23 @@ async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
             let request = CreateTunnelRequest {
                 application_id,
                 accept: vec!["*/*".into()],
-                max_files: 10,
-                max_file_bytes: 50 * 1024 * 1024,
+                max_files: MAX_FILES_PER_TUNNEL,
+                max_file_bytes: MAX_FILE_BYTES,
                 expires_in_seconds: 600,
             };
             match client.create_tunnel(&request).await {
-                Ok(tunnel) => {
-                    observability::event(logger, "tunnel.create.completed");
-                    ResponseKind::Created(ReceiveSession::from_tunnel(tunnel))
-                }
+                Ok(tunnel) => match ReceiveSession::from_tunnel(tunnel) {
+                    Ok(session) => {
+                        observability::event(logger, "tunnel.create.completed");
+                        ResponseKind::Created(session)
+                    }
+                    Err(_) => {
+                        observability::event(logger, "tunnel.create.response_rejected");
+                        ResponseKind::Failed(
+                            "The service returned a tunnel outside the receive contract.",
+                        )
+                    }
+                },
                 Err(error) => failed(logger, "tunnel.create.failed", &error),
             }
         }
@@ -136,6 +147,12 @@ async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
             };
             match client.snapshot(tunnel_id, capability.as_str()).await {
                 Ok(snapshot) => {
+                    if validate_snapshot(&snapshot.files).is_err() {
+                        observability::event(logger, "tunnel.snapshot.rejected");
+                        return ResponseKind::Failed(
+                            "The service returned file metadata outside the receive contract.",
+                        );
+                    }
                     observability::event_with_count(
                         logger,
                         "tunnel.snapshot.completed",
@@ -155,6 +172,12 @@ async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
             force,
         } => {
             observability::event(logger, "file.download.started");
+            if validate_file_descriptor(&file).is_err() {
+                observability::event(logger, "file.download.metadata_rejected");
+                return ResponseKind::Failed(
+                    "The selected file metadata is outside the receive contract.",
+                );
+            }
             let Ok(client) = client(&base_url) else {
                 return ResponseKind::Failed("The service address is not allowed.");
             };
