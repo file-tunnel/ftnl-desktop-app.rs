@@ -1,6 +1,6 @@
 [package]
 org = "file-tunnel"
-name = "ftnl-desktop-app.rs"
+name = "ftnl-desktop-app"
 version = "0.1.0"
 description = "Native Rust desktop receiver for File Tunnel"
 license = "MIT"
@@ -31,7 +31,7 @@ exclude = [".env", ".env.*", "env/dec/**", ".direnv/**", ".cache/**", "target/**
 
 [targets.rust]
 dir = "."
-name = "ftnl-desktop-app-rust"
+name = "ftnl-desktop-app"
 adapter = "rust"
 
 [scripts]
