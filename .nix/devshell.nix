@@ -21,6 +21,8 @@ pkgs.mkShell {
     pkgs.tlaplus
   ]
   ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+    pkgs.gtk3
+    pkgs.libayatana-appindicator
     pkgs.libGL
     pkgs.libxkbcommon
     pkgs.pkg-config
