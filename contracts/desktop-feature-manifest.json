@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "contract_revision": "DEN-3384.v1",
+  "implementation": "rust_desktop",
+  "features": [
+    {
+      "feature_id": "clipboard.capture.pause",
+      "status": "implemented",
+      "evidence": ["src/workspace.rs unit tests"]
+    },
+    {
+      "feature_id": "clipboard.clear_unpinned",
+      "status": "implemented",
+      "evidence": ["src/workspace.rs unit tests"]
+    },
+    {
+      "feature_id": "clipboard.deduplicate",
+      "status": "implemented",
+      "evidence": ["src/workspace.rs unit tests"]
+    },
+    {
+      "feature_id": "clipboard.delete",
+      "status": "implemented",
+      "evidence": ["src/workspace.rs unit tests"]
+    },
+    {
+      "feature_id": "clipboard.history.text",
+      "status": "implemented",
+      "evidence": ["src/workspace.rs unit tests"]
+    },
+    {
+      "feature_id": "clipboard.pin",
+      "status": "implemented",
+      "evidence": ["src/workspace.rs unit tests"]
+    },
+    {
+      "feature_id": "clipboard.retention",
+      "status": "implemented",
+      "evidence": ["src/workspace.rs unit tests"]
+    },
+    {
+      "feature_id": "clipboard.search",
+      "status": "implemented",
+      "evidence": ["src/workspace.rs unit tests"]
+    },
+    {
+      "feature_id": "desktop.tray.lifecycle",
+      "status": "implemented",
+      "evidence": ["src/desktop/shell.rs unit tests"]
+    },
+    {
+      "feature_id": "desktop.window.close_to_tray",
+      "status": "implemented",
+      "evidence": ["src/desktop/shell.rs unit tests"]
+    },
+    {
+      "feature_id": "desktop.window.regular",
+      "status": "implemented",
+      "evidence": ["src/main.rs native window"]
+    },
+    {
+      "feature_id": "privacy.source_exclusions",
+      "status": "implemented",
+      "evidence": ["src/workspace.rs unit tests"]
+    }
+  ]
+}

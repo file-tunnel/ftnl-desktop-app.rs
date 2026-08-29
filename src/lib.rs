@@ -4,6 +4,7 @@
 pub mod lifecycle;
 pub mod observability;
 pub mod transfer;
+pub mod workspace;
 
 #[cfg(feature = "native-ui")]
 pub mod desktop;
