@@ -1,0 +1,34 @@
+name: App surface parity
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parity-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Validate Rust desktop and Flutter mobile/desktop parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha='5b441294b6732525cac375bedba528a5a380027f'
+          url="https://raw.githubusercontent.com/22-factor-apps/22-factor-apps-audit/${sha}/tools/app_surface_parity.py"
+          curl --proto '=https' --tlsv1.2 -fsSL "$url" -o /tmp/app_surface_parity.py
+          python3 /tmp/app_surface_parity.py \
+            --implementation rust \
+            --local-repository file-tunnel/ftnl-desktop-app.rs \
+            --peer-repository file-tunnel/ftnl-flutter \
+            --receipt-out app-surface-parity-receipt.json
+          printf '## App surface parity receipt\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
+          cat app-surface-parity-receipt.json >> "$GITHUB_STEP_SUMMARY"
+          printf '```\n' >> "$GITHUB_STEP_SUMMARY"
