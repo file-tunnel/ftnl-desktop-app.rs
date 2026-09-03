@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sha='5b441294b6732525cac375bedba528a5a380027f'
+          sha='9d362edcdb0ca4aa0f2779258fa05128124c7f35'
           url="https://raw.githubusercontent.com/22-factor-apps/22-factor-apps-audit/${sha}/tools/app_surface_parity.py"
           curl --proto '=https' --tlsv1.2 -fsSL "$url" -o /tmp/app_surface_parity.py
           python3 /tmp/app_surface_parity.py \
@@ -29,6 +29,8 @@ jobs:
             --local-repository file-tunnel/ftnl-desktop-app.rs \
             --peer-repository file-tunnel/ftnl-flutter \
             --receipt-out app-surface-parity-receipt.json
-          printf '## App surface parity receipt\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
-          cat app-surface-parity-receipt.json >> "$GITHUB_STEP_SUMMARY"
-          printf '```\n' >> "$GITHUB_STEP_SUMMARY"
+          {
+            printf '## App surface parity receipt\n\n```json\n'
+            cat app-surface-parity-receipt.json
+            printf '```\n'
+          } >> "$GITHUB_STEP_SUMMARY"
