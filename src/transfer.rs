@@ -14,6 +14,7 @@ pub const MAX_FILES_PER_TUNNEL: u16 = 10;
 pub const MAX_FILE_BYTES: u64 = 50 * 1024 * 1024;
 const MAX_FILE_NAME_BYTES: usize = 255;
 const MAX_MEDIA_TYPE_BYTES: usize = 128;
+const MAX_CREATED_AT_BYTES: usize = 64;
 
 /// A desktop receive session. Credentials are process-only and zeroized when
 /// the session is replaced, cancelled, or the process exits.
@@ -123,6 +124,8 @@ impl fmt::Debug for ReceiveSession {
 pub enum SaveError {
     #[error("server returned an unsafe file name")]
     UnsafeFileName,
+    #[error("file metadata is outside the desktop receive contract")]
+    InvalidMetadata,
     #[error("downloaded byte count did not match the declaration")]
     SizeMismatch,
     #[error("output directory does not exist")]
@@ -156,6 +159,7 @@ pub fn validate_snapshot(files: &[FileDescriptor]) -> Result<(), DescriptorError
 }
 
 pub fn validate_file_descriptor(file: &FileDescriptor) -> Result<(), DescriptorError> {
+    let valid_file_id = !file.file_id.is_nil();
     let valid_name = !file.name.is_empty()
         && file.name.len() <= MAX_FILE_NAME_BYTES
         && !file.name.chars().any(char::is_control)
@@ -172,7 +176,15 @@ pub fn validate_file_descriptor(file: &FileDescriptor) -> Result<(), DescriptorE
     );
     let valid_sizes =
         file.size_bytes <= MAX_FILE_BYTES && file.bytes_transferred <= file.size_bytes;
-    if valid_name && valid_media_type && valid_status && valid_sizes {
+    let valid_created_at = (1..=MAX_CREATED_AT_BYTES).contains(&file.created_at.len())
+        && !file.created_at.chars().any(char::is_control);
+    if valid_file_id
+        && valid_name
+        && valid_media_type
+        && valid_status
+        && valid_sizes
+        && valid_created_at
+    {
         Ok(())
     } else {
         Err(DescriptorError::InvalidMetadata)
@@ -180,7 +192,24 @@ pub fn validate_file_descriptor(file: &FileDescriptor) -> Result<(), DescriptorE
 }
 
 pub fn safe_default_destination(name: &str) -> Result<PathBuf, SaveError> {
-    if name.is_empty() || name.len() > MAX_FILE_NAME_BYTES || name.chars().any(char::is_control) {
+    let has_portable_path_punctuation = name
+        .chars()
+        .any(|character| matches!(character, '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|'));
+    let has_windows_trailing_separator = matches!(name.chars().last(), Some(' ' | '.'));
+    let windows_stem = name.split('.').next().unwrap_or(name);
+    let is_reserved_windows_name = [
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+        "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    ]
+    .iter()
+    .any(|reserved| windows_stem.eq_ignore_ascii_case(reserved));
+    if name.is_empty()
+        || name.len() > MAX_FILE_NAME_BYTES
+        || name.chars().any(char::is_control)
+        || has_portable_path_punctuation
+        || has_windows_trailing_separator
+        || is_reserved_windows_name
+    {
         return Err(SaveError::UnsafeFileName);
     }
     let path = Path::new(name);
@@ -199,6 +228,7 @@ pub fn save_download(
     requested_destination: Option<&Path>,
     force: bool,
 ) -> Result<PathBuf, SaveError> {
+    validate_file_descriptor(file).map_err(|_| SaveError::InvalidMetadata)?;
     let received = u64::try_from(bytes.len()).map_err(|_| SaveError::SizeMismatch)?;
     if received != file.size_bytes {
         return Err(SaveError::SizeMismatch);
@@ -248,7 +278,7 @@ mod tests {
 
     fn descriptor(name: &str, size_bytes: u64) -> FileDescriptor {
         FileDescriptor {
-            file_id: Uuid::nil(),
+            file_id: Uuid::from_u128(1),
             name: name.into(),
             media_type: "application/octet-stream".into(),
             size_bytes,
@@ -330,7 +360,12 @@ mod tests {
         for unsafe_name in [
             "../photo.jpg",
             "folder/photo.jpg",
+            "folder\\photo.jpg",
             "/tmp/photo.jpg",
+            "photo.jpg:stream",
+            "photo*.jpg",
+            "CON.txt",
+            "trailing.",
             "line\nbreak.jpg",
             "",
         ] {
@@ -366,7 +401,7 @@ mod tests {
         );
 
         assert_eq!(
-            validate_snapshot(&[valid.clone(), valid]),
+            validate_snapshot(&[valid.clone(), valid.clone()]),
             Err(DescriptorError::DuplicateFileId)
         );
         assert_eq!(
@@ -375,6 +410,20 @@ mod tests {
                 usize::from(MAX_FILES_PER_TUNNEL) + 1
             ]),
             Err(DescriptorError::TooManyFiles)
+        );
+
+        let mut nil_id = valid.clone();
+        nil_id.file_id = Uuid::nil();
+        assert_eq!(
+            validate_file_descriptor(&nil_id),
+            Err(DescriptorError::InvalidMetadata)
+        );
+
+        let mut invalid_created_at = valid.clone();
+        invalid_created_at.created_at = "2026-01-01\n".into();
+        assert_eq!(
+            validate_file_descriptor(&invalid_created_at),
+            Err(DescriptorError::InvalidMetadata)
         );
     }
 
@@ -389,5 +438,19 @@ mod tests {
         assert_eq!(std::fs::read(&destination).unwrap(), b"one");
         save_download(&file, b"two", Some(&destination), true).unwrap();
         assert_eq!(std::fs::read(&destination).unwrap(), b"two");
+    }
+
+    #[test]
+    fn download_rechecks_descriptor_metadata_at_persistence_boundary() {
+        let directory = tempfile::tempdir().unwrap();
+        let destination = directory.path().join("photo.jpg");
+        let mut invalid = descriptor("photo.jpg", 3);
+        invalid.file_id = Uuid::nil();
+
+        assert!(matches!(
+            save_download(&invalid, b"one", Some(&destination), false),
+            Err(SaveError::InvalidMetadata)
+        ));
+        assert!(!destination.exists());
     }
 }
