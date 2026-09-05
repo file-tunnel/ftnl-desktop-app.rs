@@ -523,8 +523,7 @@ impl SecureBluetoothSession {
         if counter > MAX_BLUETOOTH_FRAMES_PER_DIRECTION {
             return Err(SecureBluetoothError::FrameLimit);
         }
-        if ciphertext_len < AEAD_TAG_LEN
-            || ciphertext_len > MAX_BLUETOOTH_PLAINTEXT_LEN + AEAD_TAG_LEN
+        if !(AEAD_TAG_LEN..=MAX_BLUETOOTH_PLAINTEXT_LEN + AEAD_TAG_LEN).contains(&ciphertext_len)
             || frame.len() != FRAME_HEADER_LEN + ciphertext_len
         {
             return Err(SecureBluetoothError::InvalidFrame);
