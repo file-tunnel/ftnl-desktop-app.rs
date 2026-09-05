@@ -3,6 +3,7 @@
 
 pub mod lifecycle;
 pub mod observability;
+pub mod secure_bluetooth;
 pub mod transfer;
 pub mod workspace;
 

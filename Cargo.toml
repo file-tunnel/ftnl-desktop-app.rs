@@ -28,16 +28,21 @@ native-ui = [
 ]
 
 [dependencies]
+chacha20poly1305 = "0.10"
 ftnl-client = { git = "https://github.com/file-tunnel/ftnl-clients.git", rev = "a93812ff94e604b2ccd7736c2e1d8ae8bbea2978" }
 ftnl-interfaces = { git = "https://github.com/file-tunnel/ftnl-interfaces.git", rev = "9ffa2741d24a94ff4752a035086a207a7d9015ca" }
 ftnl-ui-components = { git = "https://github.com/file-tunnel/ftnl-ui-components.git", rev = "3f71c269ddf6356fdf176ae5c79726ec2dcad3f1", default-features = false }
+hkdf = "0.12"
 next-loggers = { package = "oresoftware-next-loggers", git = "https://github.com/ores-otel/ores.otel.log.git", rev = "64a4ee0ed839a8de7e9ba2588899a24e25b05a65" }
+rand_core = { version = "0.6", features = ["getrandom"] }
 serde_json = "1"
 sha2 = "0.10"
+subtle = "2.6"
 tempfile = "3"
 thiserror = "2"
 url = "2"
 uuid = { version = "1", features = ["serde", "v4"] }
+x25519-dalek = { version = "2.0.1", features = ["getrandom", "static_secrets"] }
 zeroize = "1"
 
 arboard = { version = "3.6.1", optional = true, default-features = false }
