@@ -60,6 +60,11 @@
       "feature_id": "privacy.source_exclusions",
       "status": "implemented",
       "evidence": ["src/workspace.rs unit tests"]
+    },
+    {
+      "feature_id": "proximity.secure_session",
+      "status": "implemented",
+      "evidence": ["src/secure_bluetooth.rs unit tests"]
     }
   ]
 }

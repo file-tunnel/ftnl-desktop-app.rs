@@ -10,7 +10,7 @@ use std::time::{Duration, SystemTime};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-pub const DESKTOP_FEATURE_IDS: [&str; 12] = [
+pub const DESKTOP_FEATURE_IDS: [&str; 13] = [
     "clipboard.capture.pause",
     "clipboard.clear_unpinned",
     "clipboard.deduplicate",
@@ -23,6 +23,7 @@ pub const DESKTOP_FEATURE_IDS: [&str; 12] = [
     "desktop.window.close_to_tray",
     "desktop.window.regular",
     "privacy.source_exclusions",
+    "proximity.secure_session",
 ];
 
 const MAX_TEXT_CHARACTERS: usize = 65_536;

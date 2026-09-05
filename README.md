@@ -49,9 +49,13 @@ would not be.
 - Source-fingerprint exclusions fail closed when a platform adapter supplies a
   fingerprint. The current generic adapter cannot discover the source
   application, and the UI states that limitation.
-- Bluetooth or proximity may become a discovery and transport mechanism, but
-  it is never treated as proof of identity, MFA strength, or product
-  authorization. Shared Auth remains the identity boundary.
+- `secure_bluetooth` provides the app-layer proximity substrate: ephemeral
+  X25519, transcript-bound HKDF-SHA256, explicit SAS confirmation, and
+  directional ChaCha20-Poly1305 frames for opaque Shared Auth step-up, peer
+  information, and signed update-manifest payloads. Bluetooth remains an
+  untrusted bearer and is never treated as proof of identity, MFA strength, or
+  product authorization. Shared Auth remains the identity boundary. Native
+  adapters and permissions stay disabled until the acceptance gate is met.
 - Public cleartext endpoints, redirects, and unbounded HTTP calls are rejected
   by the shared client.
 - Server filenames become defaults only when they are exactly one normal path
