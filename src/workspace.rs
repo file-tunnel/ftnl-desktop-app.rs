@@ -32,6 +32,7 @@ const MAX_TEXT_BYTES: usize = 1_048_576;
 const MAX_SEARCH_CHARACTERS: usize = 256;
 const MAX_SOURCE_EXCLUSIONS: usize = 256;
 const MAX_PROCESSED_COMMANDS: usize = 1_024;
+const MAX_REVISION: u64 = 9_007_199_254_740_991;
 pub(crate) const MAX_SNAPSHOT_ITEMS: usize = 500;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -125,6 +126,8 @@ pub enum WorkspaceError {
     ItemNotFound,
     #[error("the workspace revision changed")]
     RevisionConflict,
+    #[error("the workspace revision cannot advance further")]
+    RevisionOverflow,
     #[error("the workspace snapshot is invalid")]
     InvalidSnapshot,
 }
@@ -188,7 +191,7 @@ impl ClipboardWorkspace {
         items: Vec<ClipboardItem>,
         now: SystemTime,
     ) -> Result<Self, WorkspaceError> {
-        if revision > 9_007_199_254_740_991
+        if revision > MAX_REVISION
             || search_query.chars().count() > MAX_SEARCH_CHARACTERS
             || excluded_source_fingerprints.len() > MAX_SOURCE_EXCLUSIONS
             || excluded_source_fingerprints
@@ -263,6 +266,9 @@ impl ClipboardWorkspace {
         if expected_revision != self.revision {
             return Err(WorkspaceError::RevisionConflict);
         }
+        if self.revision >= MAX_REVISION {
+            return Err(WorkspaceError::RevisionOverflow);
+        }
 
         match action {
             WorkspaceAction::PauseCapture => self.capture_state = CaptureState::Paused,
@@ -324,7 +330,10 @@ impl ClipboardWorkspace {
             }
         }
 
-        self.revision = self.revision.saturating_add(1);
+        self.revision = self
+            .revision
+            .checked_add(1)
+            .ok_or(WorkspaceError::RevisionOverflow)?;
         self.processed_commands.push_back(command_id);
         if self.processed_commands.len() > MAX_PROCESSED_COMMANDS {
             self.processed_commands.pop_front();
@@ -614,6 +623,25 @@ mod tests {
         assert_eq!(
             workspace.apply(command_id, 1, WorkspaceAction::PauseCapture, at(1)),
             Err(WorkspaceError::DuplicateCommand)
+        );
+        assert_eq!(workspace, before);
+    }
+
+    #[test]
+    fn revision_overflow_is_rejected_without_mutation() {
+        let mut workspace = ClipboardWorkspace {
+            revision: MAX_REVISION,
+            ..ClipboardWorkspace::default()
+        };
+        let before = workspace.clone();
+        assert_eq!(
+            workspace.apply(
+                Uuid::new_v4(),
+                MAX_REVISION,
+                WorkspaceAction::PauseCapture,
+                at(1),
+            ),
+            Err(WorkspaceError::RevisionOverflow)
         );
         assert_eq!(workspace, before);
     }
