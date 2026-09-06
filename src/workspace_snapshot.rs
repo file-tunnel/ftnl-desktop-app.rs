@@ -20,6 +20,7 @@ use uuid::Uuid;
 
 use crate::workspace::{
     CaptureState, ClipboardItem, ClipboardWorkspace, RetentionPolicy, WorkspaceError,
+    MAX_SNAPSHOT_ITEMS,
 };
 
 pub const SNAPSHOT_ASSOCIATED_DATA: &str = "file-tunnel.desktop-workspace.v1";
@@ -192,6 +193,9 @@ fn cipher_for_key(key: &[u8]) -> Result<XChaCha20Poly1305, SnapshotError> {
 }
 
 fn encode_snapshot(workspace: &ClipboardWorkspace) -> Result<Vec<u8>, SnapshotError> {
+    if workspace.items().len() > MAX_SNAPSHOT_ITEMS {
+        return Err(SnapshotError::InvalidWorkspace);
+    }
     let wire = SnapshotWire {
         document_type: "workspace_snapshot".to_owned(),
         schema_version: SNAPSHOT_SCHEMA_VERSION,
