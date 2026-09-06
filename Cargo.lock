@@ -1006,7 +1006,7 @@ dependencies = [
 [[package]]
 name = "ftnl-interfaces"
 version = "0.1.0"
-source = "git+https://github.com/file-tunnel/ftnl-interfaces.git?rev=bd1c7cb0b014c94fba75ea61b8cc9c0c36b03362#bd1c7cb0b014c94fba75ea61b8cc9c0c36b03362"
+source = "git+https://github.com/file-tunnel/ftnl-interfaces.git?rev=edf0793da185f05cd844ecbea3edad26c112bd3a#edf0793da185f05cd844ecbea3edad26c112bd3a"
 dependencies = [
  "serde",
  "uuid",
@@ -3451,7 +3451,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.61.2",
