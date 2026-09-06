@@ -10,11 +10,12 @@ use std::time::{Duration, SystemTime};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-pub const DESKTOP_FEATURE_IDS: [&str; 13] = [
+pub const DESKTOP_FEATURE_IDS: [&str; 14] = [
     "clipboard.capture.pause",
     "clipboard.clear_unpinned",
     "clipboard.deduplicate",
     "clipboard.delete",
+    "clipboard.history.encrypted_snapshot",
     "clipboard.history.text",
     "clipboard.pin",
     "clipboard.retention",
@@ -31,6 +32,7 @@ const MAX_TEXT_BYTES: usize = 1_048_576;
 const MAX_SEARCH_CHARACTERS: usize = 256;
 const MAX_SOURCE_EXCLUSIONS: usize = 256;
 const MAX_PROCESSED_COMMANDS: usize = 1_024;
+pub(crate) const MAX_SNAPSHOT_ITEMS: usize = 500;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CaptureState {
@@ -123,6 +125,8 @@ pub enum WorkspaceError {
     ItemNotFound,
     #[error("the workspace revision changed")]
     RevisionConflict,
+    #[error("the workspace snapshot is invalid")]
+    InvalidSnapshot,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -173,6 +177,59 @@ impl ClipboardWorkspace {
 
     pub fn excluded_source_fingerprints(&self) -> &BTreeSet<String> {
         &self.excluded_source_fingerprints
+    }
+
+    pub(crate) fn from_snapshot_parts(
+        revision: u64,
+        capture_state: CaptureState,
+        retention: RetentionPolicy,
+        search_query: String,
+        excluded_source_fingerprints: BTreeSet<String>,
+        items: Vec<ClipboardItem>,
+        now: SystemTime,
+    ) -> Result<Self, WorkspaceError> {
+        if revision > 9_007_199_254_740_991
+            || search_query.chars().count() > MAX_SEARCH_CHARACTERS
+            || excluded_source_fingerprints.len() > MAX_SOURCE_EXCLUSIONS
+            || excluded_source_fingerprints
+                .iter()
+                .any(|value| !is_source_fingerprint(value))
+            || items.len() > MAX_SNAPSHOT_ITEMS
+        {
+            return Err(WorkspaceError::InvalidSnapshot);
+        }
+        retention
+            .validate()
+            .map_err(|_| WorkspaceError::InvalidSnapshot)?;
+
+        let mut item_ids = BTreeSet::new();
+        for item in &items {
+            if !item_ids.insert(item.item_id)
+                || item.text.is_empty()
+                || item.text.chars().count() > MAX_TEXT_CHARACTERS
+                || item.text.len() > MAX_TEXT_BYTES
+                || item.byte_size != item.text.len()
+                || item.content_sha256 != content_sha256_hex(&item.text)
+                || item
+                    .source_fingerprint
+                    .as_deref()
+                    .is_some_and(|value| !is_source_fingerprint(value))
+            {
+                return Err(WorkspaceError::InvalidSnapshot);
+            }
+        }
+
+        let mut workspace = Self {
+            revision,
+            capture_state,
+            retention,
+            search_query,
+            excluded_source_fingerprints,
+            items,
+            processed_commands: VecDeque::new(),
+        };
+        workspace.enforce_retention(now);
+        Ok(workspace)
     }
 
     pub fn visible_items(&self) -> Vec<&ClipboardItem> {

@@ -6,6 +6,7 @@ pub mod observability;
 pub mod secure_bluetooth;
 pub mod transfer;
 pub mod workspace;
+pub mod workspace_snapshot;
 
 #[cfg(feature = "native-ui")]
 pub mod desktop;
