@@ -22,6 +22,11 @@
       "evidence": ["src/workspace.rs unit tests"]
     },
     {
+      "feature_id": "clipboard.history.encrypted_snapshot",
+      "status": "implemented",
+      "evidence": ["src/workspace_snapshot.rs unit tests"]
+    },
+    {
       "feature_id": "clipboard.history.text",
       "status": "implemented",
       "evidence": ["src/workspace.rs unit tests"]
