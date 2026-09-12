@@ -1,0 +1,37 @@
+{
+  "contract": "oresoftware.cross-platform-parity.v1",
+  "organization": "file-tunnel",
+  "repositories": {
+    "flutter": "file-tunnel/ftnl-flutter",
+    "rustDesktop": "file-tunnel/ftnl-desktop-app.rs"
+  },
+  "thisRepositoryRole": "rust-desktop",
+  "requiredSurfaces": ["mobile", "flutter-desktop", "rust-desktop"],
+  "releaseGate": {
+    "mode": "stop-on-discrepancy",
+    "undocumentedExceptionsAllowed": false,
+    "exceptionRequiresRationaleOwnerAndExpiry": true
+  },
+  "architecture": {
+    "domainLogic": "shared-contracts-and-pure-services",
+    "platformChecks": "adapter-boundary-only",
+    "featureLevelPlatformConditionalBudget": 0,
+    "flutterAdapterRoots": ["lib/platform", "lib/adapters"],
+    "rustAdapterRoots": ["src/platform", "src/adapters"]
+  },
+  "inventoryPolicy": {
+    "rule": "Every user-visible feature present on either desktop implementation is inventoried once and implemented on all applicable surfaces before release.",
+    "mobileRule": "Flutter feature code is mobile-capable by default; desktop-only behavior is supplied through adapters.",
+    "statuses": ["implemented", "blocked", "not-applicable"]
+  },
+  "baselineCapabilities": [
+    {"id": "app-shell", "parity": "required"},
+    {"id": "navigation-and-deep-links", "parity": "required-when-present"},
+    {"id": "settings-and-preferences", "parity": "required-when-present"},
+    {"id": "authentication-and-session", "parity": "required-when-present"},
+    {"id": "offline-data-and-sync", "parity": "required-when-present"},
+    {"id": "notifications-and-background-work", "parity": "required-when-present"},
+    {"id": "file-import-export", "parity": "required-when-present"},
+    {"id": "accessibility-keyboard-and-screen-reader", "parity": "required"}
+  ]
+}
