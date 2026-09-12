@@ -23,3 +23,7 @@ sops-private*.txt
 # Local temporary directories and repository-owned worktrees
 tmp/
 temp/
+# >>> ores fleet hygiene — managed block, edits below are overwritten >>>
+tmp/temp/
+tmp/worktrees/
+# <<< ores fleet hygiene <<<
