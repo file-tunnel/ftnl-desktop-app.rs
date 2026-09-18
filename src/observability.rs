@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn logger_accepts_only_constant_test_event() {
-        const ROUTINE_ID: &str = "ores-routine-MK-JvgbR4-qNcD2Az8Pd_";
+        const ROUTINE_ID: &str = "ores-routine-C2ijuxjmSR17WC6jtqL6F";
         let logger = logger();
         event(
             &logger,
