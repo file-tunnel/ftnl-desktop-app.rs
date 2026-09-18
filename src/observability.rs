@@ -26,7 +26,12 @@ pub fn logger() -> Logger {
 /// `ores-routine-` literals supplied by the call site. They are correlation
 /// identifiers only: nothing derived from a pairing URI, capability, ticket,
 /// filename, file id, path or file byte ever reaches this module.
-pub fn event(logger: &Logger, name: &'static str, trace_id: &'static str, routine_id: &'static str) {
+pub fn event(
+    logger: &Logger,
+    name: &'static str,
+    trace_id: &'static str,
+    routine_id: &'static str,
+) {
     let _ = logger
         .info(vec![Value::String(name.into())])
         .add_fields(JsonObject::from_iter([
