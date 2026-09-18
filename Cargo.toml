@@ -2,6 +2,10 @@
 name = "ftnl-desktop-app"
 version = "0.1.0"
 edition = "2021"
+# MSRV floor for the ores-otel next-loggers fleet. NOTE: the next-loggers rev
+# pinned below (64a4ee0e, 2026-08-09) still declares rust-version 1.70, so this
+# crate does currently build on less. 1.88 is the floor every other next-loggers
+# dependent is on, and it becomes load-bearing here as soon as that rev advances.
 rust-version = "1.88"
 description = "Native Rust desktop companion for secure File Tunnel transfers"
 license = "MIT"
