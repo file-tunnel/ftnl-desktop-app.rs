@@ -22,7 +22,11 @@ pub fn logger() -> Logger {
     Logger::new(options)
 }
 
-pub fn event(logger: &Logger, name: &'static str) {
+/// `trace_id` and `routine_id` are always inline `ores-trace-` /
+/// `ores-routine-` literals supplied by the call site. They are correlation
+/// identifiers only: nothing derived from a pairing URI, capability, ticket,
+/// filename, file id, path or file byte ever reaches this module.
+pub fn event(logger: &Logger, name: &'static str, trace_id: &'static str, routine_id: &'static str) {
     let _ = logger
         .info(vec![Value::String(name.into())])
         .add_fields(JsonObject::from_iter([
@@ -30,10 +34,38 @@ pub fn event(logger: &Logger, name: &'static str) {
             ("data.classification".into(), json!("metadata-free")),
         ]))
         .add_tags(["file-tunnel", "desktop"])
+        .add_trace(trace_id, false)
+        .add_routine_id(routine_id)
         .send();
 }
 
-pub fn event_with_count(logger: &Logger, name: &'static str, count: usize) {
+/// Error-level counterpart to [`event`]. Callers log and then return the
+/// failure they already intended to return; this never changes an outcome.
+pub fn event_error(
+    logger: &Logger,
+    name: &'static str,
+    trace_id: &'static str,
+    routine_id: &'static str,
+) {
+    let _ = logger
+        .error(vec![Value::String(name.into())])
+        .add_fields(JsonObject::from_iter([
+            ("event.name".into(), json!(name)),
+            ("data.classification".into(), json!("metadata-free")),
+        ]))
+        .add_tags(["file-tunnel", "desktop"])
+        .add_trace(trace_id, false)
+        .add_routine_id(routine_id)
+        .send();
+}
+
+pub fn event_with_count(
+    logger: &Logger,
+    name: &'static str,
+    count: usize,
+    trace_id: &'static str,
+    routine_id: &'static str,
+) {
     let _ = logger
         .info(vec![Value::String(name.into())])
         .add_fields(JsonObject::from_iter([
@@ -42,6 +74,8 @@ pub fn event_with_count(logger: &Logger, name: &'static str, count: usize) {
             ("data.classification".into(), json!("metadata-free")),
         ]))
         .add_tags(["file-tunnel", "desktop"])
+        .add_trace(trace_id, false)
+        .add_routine_id(routine_id)
         .send();
 }
 
@@ -51,8 +85,20 @@ mod tests {
 
     #[test]
     fn logger_accepts_only_constant_test_event() {
+        const ROUTINE_ID: &str = "ores-routine-MK-JvgbR4-qNcD2Az8Pd_";
         let logger = logger();
-        event(&logger, "desktop.test");
+        event(
+            &logger,
+            "desktop.test",
+            "ores-trace-LgjrIJvkaY_a3WbH1J05C",
+            ROUTINE_ID,
+        );
+        event_error(
+            &logger,
+            "desktop.test.failed",
+            "ores-trace-3aoDMThTzw_J6i0lMNDq4",
+            ROUTINE_ID,
+        );
         logger.close().unwrap();
     }
 }
