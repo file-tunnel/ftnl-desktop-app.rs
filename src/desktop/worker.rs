@@ -86,8 +86,15 @@ impl Worker {
 }
 
 fn run(requests: Receiver<Request>, responses: Sender<Response>) {
+    const ROUTINE_ID: &str = "ores-routine-MK-JvgbR4-qNcD2Az8Pd_";
+
     let logger = observability::logger();
-    observability::event(&logger, "desktop.worker.started");
+    observability::event(
+        &logger,
+        "desktop.worker.started",
+        "ores-trace-z9fNcraT6bYxxFp5ogsz-",
+        ROUTINE_ID,
+    );
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -100,18 +107,36 @@ fn run(requests: Receiver<Request>, responses: Sender<Response>) {
             break;
         }
     }
-    observability::event(&logger, "desktop.worker.stopped");
+    observability::event(
+        &logger,
+        "desktop.worker.stopped",
+        "ores-trace-9ZfqebKIQFmlvUh-AcN_Q",
+        ROUTINE_ID,
+    );
     let _ = logger.close();
 }
 
 async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
+    const ROUTINE_ID: &str = "ores-routine-kZIb2pSDh_Tu6i-Yj5bac";
+
     match request {
         RequestKind::Create {
             base_url,
             application_id,
         } => {
-            observability::event(logger, "tunnel.create.started");
+            observability::event(
+                logger,
+                "tunnel.create.started",
+                "ores-trace-0K5kFTygd6SBy00Z6ilfX",
+                ROUTINE_ID,
+            );
             let Ok(client) = client(&base_url) else {
+                observability::event_error(
+                    logger,
+                    "tunnel.create.client_rejected",
+                    "ores-trace-UhGkPwQbdpumcyvmc83jw",
+                    ROUTINE_ID,
+                );
                 return ResponseKind::Failed("The service address is not allowed.");
             };
             let request = CreateTunnelRequest {
@@ -124,17 +149,32 @@ async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
             match client.create_tunnel(&request).await {
                 Ok(tunnel) => match ReceiveSession::from_tunnel(tunnel) {
                     Ok(session) => {
-                        observability::event(logger, "tunnel.create.completed");
+                        observability::event(
+                            logger,
+                            "tunnel.create.completed",
+                            "ores-trace-sU_gLi59WwfqFshYQ8MA-",
+                            ROUTINE_ID,
+                        );
                         ResponseKind::Created(session)
                     }
                     Err(_) => {
-                        observability::event(logger, "tunnel.create.response_rejected");
+                        observability::event_error(
+                            logger,
+                            "tunnel.create.response_rejected",
+                            "ores-trace-g8856_pG04wOowwx8Cm3A",
+                            ROUTINE_ID,
+                        );
                         ResponseKind::Failed(
                             "The service returned a tunnel outside the receive contract.",
                         )
                     }
                 },
-                Err(error) => failed(logger, "tunnel.create.failed", &error),
+                Err(error) => failed(
+                    logger,
+                    "tunnel.create.failed",
+                    "ores-trace-D3AzwtoAAcaWeN7EpHhfS",
+                    &error,
+                ),
             }
         }
         RequestKind::Refresh {
@@ -143,12 +183,23 @@ async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
             capability,
         } => {
             let Ok(client) = client(&base_url) else {
+                observability::event_error(
+                    logger,
+                    "tunnel.snapshot.client_rejected",
+                    "ores-trace-ErOSOIAbwX4GYcnbYHmXp",
+                    ROUTINE_ID,
+                );
                 return ResponseKind::Failed("The service address is not allowed.");
             };
             match client.snapshot(tunnel_id, capability.as_str()).await {
                 Ok(snapshot) => {
                     if validate_snapshot(&snapshot.files).is_err() {
-                        observability::event(logger, "tunnel.snapshot.rejected");
+                        observability::event_error(
+                            logger,
+                            "tunnel.snapshot.rejected",
+                            "ores-trace-7RGb-EjAe8kmpnEYfzpJj",
+                            ROUTINE_ID,
+                        );
                         return ResponseKind::Failed(
                             "The service returned file metadata outside the receive contract.",
                         );
@@ -157,10 +208,17 @@ async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
                         logger,
                         "tunnel.snapshot.completed",
                         snapshot.files.len(),
+                        "ores-trace--sCSbBMzt5ktP0eAyyFXq",
+                        ROUTINE_ID,
                     );
                     ResponseKind::Snapshot(snapshot.files)
                 }
-                Err(error) => failed(logger, "tunnel.snapshot.failed", &error),
+                Err(error) => failed(
+                    logger,
+                    "tunnel.snapshot.failed",
+                    "ores-trace-6fcK6pQcOGpVkMAhLNu-0",
+                    &error,
+                ),
             }
         }
         RequestKind::Download {
@@ -171,14 +229,30 @@ async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
             destination,
             force,
         } => {
-            observability::event(logger, "file.download.started");
+            observability::event(
+                logger,
+                "file.download.started",
+                "ores-trace-Yda4iQ60C6sUg-Dmqw2IY",
+                ROUTINE_ID,
+            );
             if validate_file_descriptor(&file).is_err() {
-                observability::event(logger, "file.download.metadata_rejected");
+                observability::event_error(
+                    logger,
+                    "file.download.metadata_rejected",
+                    "ores-trace-yyPhjKYdQibKPEfjwMaUJ",
+                    ROUTINE_ID,
+                );
                 return ResponseKind::Failed(
                     "The selected file metadata is outside the receive contract.",
                 );
             }
             let Ok(client) = client(&base_url) else {
+                observability::event_error(
+                    logger,
+                    "file.download.client_rejected",
+                    "ores-trace-ZsaJmNhOu60qutOMCcgui",
+                    ROUTINE_ID,
+                );
                 return ResponseKind::Failed("The service address is not allowed.");
             };
             let bytes = match client
@@ -186,15 +260,32 @@ async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
                 .await
             {
                 Ok(bytes) => bytes,
-                Err(error) => return failed(logger, "file.download.failed", &error),
+                Err(error) => {
+                    return failed(
+                        logger,
+                        "file.download.failed",
+                        "ores-trace-Vn1koVq1EBpRy9deKPRyE",
+                        &error,
+                    )
+                }
             };
             match save_download(&file, &bytes, destination.as_deref(), force) {
                 Ok(path) => {
-                    observability::event(logger, "file.download.completed");
+                    observability::event(
+                        logger,
+                        "file.download.completed",
+                        "ores-trace-hWw-kz4ceN787XoAsc7w6",
+                        ROUTINE_ID,
+                    );
                     ResponseKind::Downloaded(path)
                 }
                 Err(_) => {
-                    observability::event(logger, "file.persist.failed");
+                    observability::event_error(
+                        logger,
+                        "file.persist.failed",
+                        "ores-trace-7EAyj7tKD2ktPKgiZqO4f",
+                        ROUTINE_ID,
+                    );
                     ResponseKind::Failed(
                         "The downloaded file could not be safely written at that location.",
                     )
@@ -207,14 +298,30 @@ async fn handle(request: RequestKind, logger: &Logger) -> ResponseKind {
             capability,
         } => {
             let Ok(client) = client(&base_url) else {
+                observability::event_error(
+                    logger,
+                    "tunnel.cancel.client_rejected",
+                    "ores-trace-nvbe4gtOJVjbIgfVnU9Wo",
+                    ROUTINE_ID,
+                );
                 return ResponseKind::Failed("The service address is not allowed.");
             };
             match client.cancel(tunnel_id, capability.as_str()).await {
                 Ok(()) => {
-                    observability::event(logger, "tunnel.cancel.completed");
+                    observability::event(
+                        logger,
+                        "tunnel.cancel.completed",
+                        "ores-trace-V9Ri2WmXHTIHjhFDT-UBt",
+                        ROUTINE_ID,
+                    );
                     ResponseKind::Cancelled
                 }
-                Err(error) => failed(logger, "tunnel.cancel.failed", &error),
+                Err(error) => failed(
+                    logger,
+                    "tunnel.cancel.failed",
+                    "ores-trace-BVZC_ODNAjWj-TN8DcuCF",
+                    &error,
+                ),
             }
         }
     }
@@ -224,8 +331,18 @@ fn client(base_url: &str) -> Result<FileTunnelClient, ClientError> {
     FileTunnelClient::with_timeout(base_url, Duration::from_secs(30))
 }
 
-fn failed(logger: &Logger, event: &'static str, error: &ClientError) -> ResponseKind {
-    observability::event(logger, event);
+/// Logs the failure of an upstream call and then returns the same user-facing
+/// `ResponseKind::Failed` it always returned. `trace_id` is the caller's inline
+/// `ores-trace-` literal; the `ClientError` detail is never logged.
+fn failed(
+    logger: &Logger,
+    event: &'static str,
+    trace_id: &'static str,
+    error: &ClientError,
+) -> ResponseKind {
+    const ROUTINE_ID: &str = "ores-routine-uvRjbNn4tiqmclZSTsCTn";
+
+    observability::event_error(logger, event, trace_id, ROUTINE_ID);
     match error {
         ClientError::Api { status, .. } if matches!(status.as_u16(), 404 | 410) => {
             ResponseKind::Failed("The tunnel expired or is no longer available.")
