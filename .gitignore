@@ -19,3 +19,7 @@ env/dec/
 *.age-key
 keys.txt
 sops-private*.txt
+
+# Local temporary directories and repository-owned worktrees
+tmp/
+temp/
