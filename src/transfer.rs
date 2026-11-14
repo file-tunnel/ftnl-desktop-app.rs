@@ -198,8 +198,9 @@ pub fn safe_default_destination(name: &str) -> Result<PathBuf, SaveError> {
     let has_windows_trailing_separator = matches!(name.chars().last(), Some(' ' | '.'));
     let windows_stem = name.split('.').next().unwrap_or(name);
     let is_reserved_windows_name = [
-        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
-        "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+        "CON", "CONIN$", "CONOUT$", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5",
+        "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7",
+        "LPT8", "LPT9",
     ]
     .iter()
     .any(|reserved| windows_stem.eq_ignore_ascii_case(reserved));
@@ -365,6 +366,8 @@ mod tests {
             "photo.jpg:stream",
             "photo*.jpg",
             "CON.txt",
+            "CONIN$",
+            "conout$.log",
             "trailing.",
             "line\nbreak.jpg",
             "",
